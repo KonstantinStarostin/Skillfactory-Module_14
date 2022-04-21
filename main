@@ -1,0 +1,125 @@
+// Module_14
+// консольное приложение
+// автодоплнение слова по заданному словарю
+// только для строчных букв английского алфавита
+// реализована по принципу префиксного дерева
+// словарь храниться в файле "Dictionary.txt"
+// "Dictionary.txt" необходимо разместить в директории с исполняемым файлом
+
+#include <iostream>
+#include <string>
+#include <fstream>
+
+int const ALPHABET_SIZE = 'z' - 'a' + 1;             // размер словаря английских прописных букв
+std::string const DICT_FILE_NAME = "Dictionary.txt"; // путь к словарю по умолчанию
+
+
+// узел префиксного дерева
+struct Trie_Node {
+	struct Trie_Node* children[ALPHABET_SIZE];
+	bool end_of_word;
+};
+
+// создание нового узла префиксного дерева
+Trie_Node* new_node() {
+	struct Trie_Node* pNode = new Trie_Node;
+
+	pNode->end_of_word = false;
+
+	for (int i = 0; i < ALPHABET_SIZE; i++)
+		pNode->children[i] = nullptr;
+
+	return pNode;
+}
+
+// добавление в словарь нового слова (строки "str")
+// допустимы только буквы от 'a' до 'z'
+void add_word(struct Trie_Node* node, std::string& str) {
+	for (int i = 0; i < str.size(); i++)
+		if (str[i] < 'a' || str[i] > 'z')
+			return;
+
+	int index = 0;
+
+	for (int i = 0; i < str.size(); i++) {
+		index = str[i] - 'a';
+		if (node->children[index] == nullptr) 
+			node->children[index] = new_node();
+		node = node->children[index];
+	}
+
+	node->end_of_word = true;
+}
+
+// вывод на печать всех слов, содержащися в словаре
+void print_dict(struct Trie_Node* node, std::string str) {
+
+	if (node->end_of_word == true)
+		std::cout << str << std::endl;
+
+	for (int i = 0; i < ALPHABET_SIZE; i++) {
+		if (node->children[i] != nullptr) {
+			std::string new_str = str + char('a' + i);
+			print_dict(node->children[i], new_str);
+		}
+	}
+	return;
+}
+
+// поиск словаря, содержащего все слова, для которых фрагмент "str" является префиксом
+Trie_Node* search_sub_dict(struct Trie_Node* node, std::string str) {
+	int index = 0;
+	for (int i = 0; i < str.size(); i++) {
+		if (str[i] < 'a' || str[i] > 'z')
+			return nullptr;
+		index = str[i] - 'a';
+		if (node->children[index] == nullptr)
+			return nullptr;
+		node = node->children[index];
+	}
+	return node;
+}
+
+int main()
+{
+	// чтение словаря из файла
+	std::string dict_file_name = DICT_FILE_NAME;
+	std::ifstream ist_dictionary(dict_file_name.c_str(), std::ios_base::in);
+	std::string str = "";
+	char ch = '!';
+	struct Trie_Node* dictionary = new_node();
+	do{
+		ist_dictionary >> ch;
+		
+		if (ch != ';') {
+			str += ch;
+		}
+		else {
+			add_word(dictionary, str);
+			str = "";
+		}
+	} while (!ist_dictionary.eof());
+	str = "";
+
+	// вывод словаря на экран
+	std::cout << "Dictionary:\n";
+	print_dict(dictionary, str);
+
+	// основной цикл ввода слов пользователем
+	// и вывода возможных вариантов автодополнения
+	struct Trie_Node* sub_dictionary = new_node();
+	while (true) {
+		std::cout << "\nInput word: (quit to exit)\n";
+		std::cin >> str;
+		if (str == "quit")
+			break;
+		sub_dictionary = search_sub_dict(dictionary, str);
+		if (sub_dictionary == nullptr)
+			std::cout << "\ndictionary haven't words for auto addition!\n\n";
+		else {
+			std::cout << "\nwords for auto addition:\n\n";
+			print_dict(sub_dictionary, str);
+		}
+	}
+	return 0;
+}
